@@ -22,6 +22,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // brick production management
+    Route::resource('slots', \App\Http\Controllers\SlotController::class);
+    Route::resource('materials', \App\Http\Controllers\MaterialController::class);
+    Route::resource('workers', \App\Http\Controllers\WorkerController::class);
 });
 
 require __DIR__.'/auth.php';

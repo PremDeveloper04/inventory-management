@@ -20,15 +20,3 @@ jobs:
             echo "Connected successfully!"
             whoami
             pwd
-:::
-
----
-
-# ⚠️ Important Rules (YAML)
-
-- ❌ No ``` (backticks)
-- ❌ No tabs (only spaces)
-- ✅ Indentation matters (2 spaces)
-- ✅ Keep structure exact
-
----

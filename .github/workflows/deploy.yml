@@ -9,7 +9,7 @@ jobs:
 deploy:
 runs-on: ubuntu-latest
 
-```
+
 steps:
   - name: 🚀 Deploy via SSH
     uses: appleboy/ssh-action@v1.0.0
@@ -57,4 +57,4 @@ steps:
         chown -R www-data:www-data /var/www/inventory-management
 
         echo "✅ Deployment Finished"
-```
+

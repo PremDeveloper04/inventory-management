@@ -51,6 +51,6 @@ jobs:
             php artisan queue:restart || true
 
             echo "🔒 Fix permissions"
-            chown -R www-data:www-data storage bootstrap/cache
+            chmod -R 775 storage bootstrap/cache
 
             echo "✅ Staging Deployment Completed!"

@@ -1,4 +1,4 @@
-name: Deploy Laravel (Production)
+name: Deploy Laravel
 
 on:
 push:
@@ -18,8 +18,6 @@ steps:
       key: ${{ secrets.SSH_PRIVATE_KEY }}
       script: |
         set -e
-
-        echo "Starting Deployment..."
 
         cd /var/www/inventory-management
 
@@ -44,5 +42,3 @@ steps:
         php artisan queue:restart || true
 
         chown -R www-data:www-data /var/www/inventory-management
-
-        echo "Deployment Finished"

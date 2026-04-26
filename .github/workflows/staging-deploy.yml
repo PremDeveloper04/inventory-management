@@ -1,0 +1,56 @@
+name: 🚀 Deploy Staging
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🚀 Deploy to Staging via SSH
+        uses: appleboy/ssh-action@v1.0.0
+
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+          script: |
+            set -e
+
+            echo "🚀 Starting Staging Deployment..."
+
+            cd /var/www/inventory-staging
+
+            echo "📥 Pull latest code"
+            git fetch origin
+            git reset --hard origin/develop
+
+            echo "📦 Install PHP dependencies"
+            composer install --no-interaction --prefer-dist --optimize-autoloader
+
+            echo "📦 Install Node dependencies"
+            npm ci
+
+            echo "🏗️ Build frontend (Vite)"
+            npm run build
+
+            echo "🧪 Run database migrations"
+            php artisan migrate --force
+
+            echo "⚡ Clear old cache"
+            php artisan optimize:clear
+
+            echo "⚡ Cache config"
+            php artisan config:cache
+
+            echo "🔁 Restart queue"
+            php artisan queue:restart || true
+
+            echo "🔒 Fix permissions"
+            chown -R www-data:www-data storage bootstrap/cache
+
+            echo "✅ Staging Deployment Completed!"

@@ -1,4 +1,4 @@
-name: 🚀 Deploy Laravel (Production)
+name: Deploy Laravel (Production)
 
 on:
 push:
@@ -9,9 +9,8 @@ jobs:
 deploy:
 runs-on: ubuntu-latest
 
-
 steps:
-  - name: 🚀 Deploy via SSH
+  - name: Deploy via SSH
     uses: appleboy/ssh-action@v1.0.0
     with:
       host: ${{ secrets.SERVER_HOST }}
@@ -20,41 +19,30 @@ steps:
       script: |
         set -e
 
-        echo "🚀 Starting Deployment..."
+        echo "Starting Deployment..."
 
         cd /var/www/inventory-management
 
-        echo "📥 Pull latest code"
         git pull origin main
 
-        echo "📦 Install PHP dependencies"
         composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
-        echo "📦 Install Node dependencies"
         npm ci
-
-        echo "🏗️ Build frontend (Vite)"
         npm run build
 
-        echo "🧪 Run database migrations"
         php artisan migrate --force
 
-        echo "⚡ Clear old cache"
         php artisan config:clear
         php artisan cache:clear
         php artisan route:clear
         php artisan view:clear
 
-        echo "⚡ Cache for production"
         php artisan config:cache
         php artisan route:cache
         php artisan view:cache
 
-        echo "🔁 Restart queue (if running)"
         php artisan queue:restart || true
 
-        echo "🔒 Fix permissions"
         chown -R www-data:www-data /var/www/inventory-management
 
-        echo "✅ Deployment Finished"
-
+        echo "Deployment Finished"

@@ -121,6 +121,7 @@ class GenerateWorkerExport implements ShouldQueue
     //     ]);
     // }
 
+    
     public function handle()
     {
         $export = Export::find($this->exportId);

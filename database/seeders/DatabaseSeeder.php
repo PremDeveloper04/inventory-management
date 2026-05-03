@@ -2,34 +2,79 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use App\Models\Worker; // ✅ ADD THIS
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
+use App\Models\Worker;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     public function run(): void
     {
-        // User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        // 🔥 Important for large data
+        DB::disableQueryLog();
 
-        // \App\Models\Material::insert([
-        //     ['name' => 'Clay', 'price' => 5],
-        //     ['name' => 'Sand', 'price' => 3],
-        //     ['name' => 'Water', 'price' => 0],
-        // ]);
+        /*
+        |--------------------------------------------------------------------------
+        | MATERIAL SEEDING
+        |--------------------------------------------------------------------------
+        */
+        $materials = [];
 
-        // $total = 10000000;
-        // $chunkSize = 1000;
+        for ($i = 1; $i <= 50; $i++) {
+            $materials[] = [
+                'name' => 'Material ' . $i,
+                'price' => rand(1, 100),
+            ];
+        }
 
-        // for ($i = 0; $i < $total; $i += $chunkSize) {
-        //     $workers = Worker::factory()->count($chunkSize)->make()->toArray();
-        //     Worker::insert($workers);
-        // }
+        DB::table('materials')->insert($materials);
+
+        /*
+        |--------------------------------------------------------------------------
+        | WORKER SEEDING
+        |--------------------------------------------------------------------------
+        */
+
+        $total = 10000000; // ⚠️ Start with 100k (increase later)
+        $chunkSize = 1000;
+
+        for ($i = 0; $i < $total; $i += $chunkSize) {
+
+            $workers = Worker::factory()
+                ->count($chunkSize)
+                ->make()
+                ->map(function ($worker) {
+
+                    // 🔥 Random realistic date
+                    $date = Carbon::now()->subDays(rand(0, 365 * 3));
+
+                    return [
+                        'name' => $worker->name,
+                        'email' => $worker->email,
+                        'phone' => $worker->phone,
+
+                        'state' => $worker->state,
+                        'city' => $worker->city,
+                        'country' => $worker->country, // already "India"
+
+                        'status' => $worker->status,
+                        'experience' => $worker->experience,
+                        'salary' => $worker->salary,
+
+                        'joined_at' => $date,
+
+                        // ✅ IMPORTANT
+                        'created_at' => $date,
+                        'updated_at' => $date,
+                    ];
+                })
+                ->toArray();
+
+            DB::table('workers')->insert($workers);
+
+            // Optional progress log
+            echo "Inserted: " . ($i + $chunkSize) . "\n";
+        }
     }
 }

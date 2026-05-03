@@ -16,6 +16,18 @@
 
     <h3 class="mb-4">Workers List</h3>
 
+    @if(session('error'))
+        <div class="alert alert-danger">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="alert alert-danger">
+            {{ $errors->first() }}
+        </div>
+    @endif
+
     {{-- FILTER PANEL --}}
     <div class="card mb-4">
         <div class="card-body">
@@ -65,6 +77,36 @@
 
                     <div class="col-md-2">
                         <a href="{{ route('workers.index') }}" class="btn btn-secondary w-100">Reset</a>
+                    </div>
+
+                    {{-- OLD EXPORT (commented) --}}
+                    {{-- 
+                    <div class="col-md-2">
+                        <button type="button"
+                                onclick="exportData()"
+                                class="btn btn-success w-100">
+                            Export
+                        </button>
+                    </div>
+                    --}}
+
+                    {{-- NEW ASYNC EXPORT --}}
+                    <div class="col-md-2">
+                        <button type="button"
+                                onclick="startExport()"
+                                id="exportBtn"
+                                class="btn btn-success w-100">
+                            Export
+                        </button>
+                    </div>
+
+                    <div class="col-md-2">
+                        <button type="button"
+                                id="downloadBtn"
+                                class="btn btn-primary w-100"
+                                disabled>
+                            Download
+                        </button>
                     </div>
 
                 </div>
@@ -126,4 +168,67 @@
 </div>
 
 </body>
+
+
+<script>
+/*function exportData() {
+    let params = new URLSearchParams(new FormData(document.querySelector('form')));
+    window.location.href = "{{ route('workers.export') }}?" + params.toString();
+}*/
+
+let exportId = null;
+let interval = null;
+
+function startExport() {
+    let form = document.querySelector('form');
+    let params = new URLSearchParams(new FormData(form));
+
+    document.getElementById('exportBtn').innerText = 'Processing...';
+    document.getElementById('exportBtn').disabled = true;
+
+    fetch("{{ url('/start-export') }}?" + params.toString())
+        .then(res => res.json())
+        .then(data => {
+            exportId = data.export_id;
+            checkStatus();
+        });
+}
+
+function checkStatus() {
+    interval = setInterval(() => {
+        fetch(`/check-export/${exportId}`)
+            .then(res => res.json())
+            .then(data => {
+
+                if (data.status === 'processing') {
+                    document.getElementById('downloadBtn').innerText = 'Please wait...';
+                }
+
+                if (data.status === 'completed') {
+                    clearInterval(interval);
+
+                    let btn = document.getElementById('downloadBtn');
+
+                    btn.disabled = false;
+                    btn.innerText = 'Download';
+
+                    btn.onclick = function () {
+                        window.location.href = `/download-export/${exportId}`;
+                    };
+
+                    document.getElementById('exportBtn').innerText = 'Export';
+                    document.getElementById('exportBtn').disabled = false;
+                }
+
+                if (data.status === 'failed') {
+                    clearInterval(interval);
+                    alert('Export failed');
+                    document.getElementById('exportBtn').innerText = 'Export';
+                    document.getElementById('exportBtn').disabled = false;
+                }
+            });
+    }, 3000);
+}
+</script>
+
 </html>

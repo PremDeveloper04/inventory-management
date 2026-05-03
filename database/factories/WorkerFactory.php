@@ -14,18 +14,39 @@ class WorkerFactory extends Factory
      *
      * @return array<string, mixed>
      */
-    public function definition()
+    public function definition(): array
     {
+        $states = [
+            'Bihar' => ['Patna', 'Gaya', 'Muzaffarpur'],
+            'Uttar Pradesh' => ['Lucknow', 'Kanpur', 'Varanasi'],
+            'Maharashtra' => ['Mumbai', 'Pune', 'Nagpur'],
+            'Delhi' => ['New Delhi', 'Dwarka', 'Rohini'],
+            'Karnataka' => ['Bangalore', 'Mysore', 'Mangalore'],
+            'West Bengal' => ['Kolkata', 'Howrah', 'Durgapur'],
+            'Tamil Nadu' => ['Chennai', 'Coimbatore', 'Madurai'],
+            'Rajasthan' => ['Jaipur', 'Udaipur', 'Jodhpur'],
+        ];
+
+        // 🔥 Pick random state
+        $state = fake()->randomElement(array_keys($states));
+
+        // 🔥 Pick city from that state
+        $city = fake()->randomElement($states[$state]);
+
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'phone' => fake()->phoneNumber(),
-            'city' => fake()->city(),
-            'state' => fake()->state(),
+
+            'state' => $state,
+            'city' => $city,
+            'country' => 'India', // ✅ fixed
+
             'status' => fake()->randomElement(['active', 'inactive']),
-            'experience' => fake()->numberBetween(1, 15),
-            'salary' => fake()->numberBetween(10000, 100000),
-            'joined_at' => fake()->dateTimeBetween('-5 years', 'now'),
+            'experience' => rand(0, 15),
+            'salary' => rand(10000, 100000),
+
+            'joined_at' => now(),
         ];
     }
 }

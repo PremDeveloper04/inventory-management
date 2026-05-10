@@ -100,14 +100,6 @@
                         </button>
                     </div>
 
-                    <div class="col-md-2">
-                        <button type="button"
-                                id="downloadBtn"
-                                class="btn btn-primary w-100"
-                                disabled>
-                            Download
-                        </button>
-                    </div>
 
                 </div>
 
@@ -189,46 +181,10 @@ function startExport() {
     fetch("{{ url('/start-export') }}?" + params.toString())
         .then(res => res.json())
         .then(data => {
-            exportId = data.export_id;
-            checkStatus();
+            window.location.href = data.redirect_url;
         });
 }
 
-function checkStatus() {
-    interval = setInterval(() => {
-        fetch(`/check-export/${exportId}`)
-            .then(res => res.json())
-            .then(data => {
-
-                if (data.status === 'processing') {
-                    document.getElementById('downloadBtn').innerText = 'Please wait...';
-                }
-
-                if (data.status === 'completed') {
-                    clearInterval(interval);
-
-                    let btn = document.getElementById('downloadBtn');
-
-                    btn.disabled = false;
-                    btn.innerText = 'Download';
-
-                    btn.onclick = function () {
-                        window.location.href = `/download-export/${exportId}`;
-                    };
-
-                    document.getElementById('exportBtn').innerText = 'Export';
-                    document.getElementById('exportBtn').disabled = false;
-                }
-
-                if (data.status === 'failed') {
-                    clearInterval(interval);
-                    alert('Export failed');
-                    document.getElementById('exportBtn').innerText = 'Export';
-                    document.getElementById('exportBtn').disabled = false;
-                }
-            });
-    }, 3000);
-}
 </script>
 
 </html>

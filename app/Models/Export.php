@@ -10,6 +10,19 @@ class Export extends Model
         'file_name',
         'filters',
         'status',
-        'created_at'
+        'export_name',
+        'total_records',
+        'processed_records',
+        'total_parts',
+        'completed_parts',
     ];
+
+    protected $casts = [
+        'filters' => 'array'
+    ];
+
+    public function files()
+    {
+        return $this->hasMany(ExportFile::class);
+    }
 }

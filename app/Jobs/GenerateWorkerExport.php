@@ -9,8 +9,11 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use App\Models\Export;
 use App\Models\Worker;
+use App\Models\ExportFile;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use App\Jobs\GenerateWorkerExportPart;
+
 
 class GenerateWorkerExport implements ShouldQueue
 {
@@ -122,6 +125,154 @@ class GenerateWorkerExport implements ShouldQueue
     // }
 
     
+    // public function handle()
+    // {
+    //     $export = Export::find($this->exportId);
+
+    //     if (!$export) {
+    //         return;
+    //     }
+
+    //     $filters = $export->filters;
+
+    //     $query = Worker::query();
+
+    //     // Filters
+    //     if (!empty($filters['status'])) {
+    //         $query->where('status', $filters['status']);
+    //     }
+
+    //     if (!empty($filters['city'])) {
+    //         $query->where('city', $filters['city']);
+    //     }
+
+    //     if (!empty($filters['from_date'])) {
+    //         $query->where('created_at', '>=', $filters['from_date'].' 00:00:00');
+    //     }
+
+    //     if (!empty($filters['to_date'])) {
+    //         $query->where('created_at', '<=', $filters['to_date'].' 23:59:59');
+    //     }
+
+    //     // 🔥 STEP 1: COUNT RECORDS
+    //     $totalRecords = $query->count();
+
+    //     $export->update([
+    //         'total_records' => $totalRecords,
+    //         'processed_records' => 0,
+    //         'status' => 'processing'
+    //     ]);
+
+    //     // Folder
+    //     $directory = storage_path('app/public/exports');
+    //     if (!file_exists($directory)) {
+    //         mkdir($directory, 0777, true);
+    //     }
+
+    //     // Headers
+    //     $headers = [
+    //         'ID','Name','Email','Phone','City','State','Country',
+    //         'Status','Experience','Salary','Joined At','Created At','Updated At'
+    //     ];
+
+    //     // 🔥 STEP 2: DECIDE FORMAT
+    //     if ($totalRecords < 30000) {
+
+    //         // =========================
+    //         // ✅ EXCEL EXPORT
+    //         // =========================
+
+    //         $spreadsheet = new Spreadsheet();
+    //         $sheet = $spreadsheet->getActiveSheet();
+
+    //         $sheet->fromArray([$headers], null, 'A1');
+    //         $sheet->getStyle('A1:M1')->getFont()->setBold(true);
+
+    //         $row = 2;
+
+    //         $query->orderBy('id')->chunk(1000, function ($workers) use (&$sheet, &$row, $export) {
+    //             foreach ($workers as $worker) {
+    //                 $sheet->fromArray([[
+    //                     $worker->id,
+    //                     $worker->name,
+    //                     $worker->email,
+    //                     $worker->phone,
+    //                     $worker->city,
+    //                     $worker->state,
+    //                     $worker->country,
+    //                     $worker->status,
+    //                     $worker->experience,
+    //                     $worker->salary,
+    //                     $worker->joined_at,
+    //                     $worker->created_at,
+    //                     $worker->updated_at
+    //                 ]], null, "A$row");
+
+    //                 $row++;
+    //             }
+    //             $export->increment('processed_records', $workers->count());
+    //         });
+
+    //         $fileName = 'workers_'.$export->id.'.xlsx';
+    //         $fullPath = $directory.'/'.$fileName;
+
+    //         $writer = new Xlsx($spreadsheet);
+    //         $writer->save($fullPath);
+
+    //     } else {
+
+    //         // =========================
+    //         // ✅ CSV EXPORT (STREAMING)
+    //         // =========================
+
+    //         $fileName = 'workers_'.$export->id.'.csv';
+    //         $fullPath = $directory.'/'.$fileName;
+
+    //         $file = fopen($fullPath, 'w');
+
+    //         // Header
+    //         fputcsv($file, $headers);
+
+    //         $query->orderBy('id')->chunk(1000, function ($workers) use ($file, $export) {
+    //             foreach ($workers as $worker) {
+    //                 fputcsv($file, [
+    //                     $worker->id,
+    //                     $worker->name,
+    //                     $worker->email,
+    //                     $worker->phone,
+    //                     $worker->city,
+    //                     $worker->state,
+    //                     $worker->country,
+    //                     $worker->status,
+    //                     $worker->experience,
+    //                     $worker->salary,
+    //                     $worker->joined_at,
+    //                     $worker->created_at,
+    //                     $worker->updated_at
+    //                 ]);
+    //             }
+    //             $export->increment('processed_records', $workers->count());
+    //         });
+
+    //         fclose($file);
+    //     }
+
+    //     // 🔥 FINAL UPDATE
+    //     ExportFile::create([
+    //         'export_id' => $export->id,
+    //         'file_name' => 'exports/'.$fileName,
+    //         'part_number' => 1,
+    //         'records_count' => $totalRecords,
+    //         'status' => 'completed'
+    //     ]);
+
+    //     $export->update([
+    //         'completed_parts' => 1,
+    //         'total_parts' => 1,
+    //         'status' => 'completed'
+    //     ]);
+    // }
+
     public function handle()
     {
         $export = Export::find($this->exportId);
@@ -130,9 +281,7 @@ class GenerateWorkerExport implements ShouldQueue
             return;
         }
 
-        $export->update(['status' => 'processing']);
-
-        $filters = json_decode($export->filters, true);
+        $filters = $export->filters;
 
         $query = Worker::query();
 
@@ -153,106 +302,35 @@ class GenerateWorkerExport implements ShouldQueue
             $query->where('created_at', '<=', $filters['to_date'].' 23:59:59');
         }
 
-        // 🔥 STEP 1: COUNT RECORDS
+        // Total records
         $totalRecords = $query->count();
 
-        // Folder
-        $directory = storage_path('app/public/exports');
-        if (!file_exists($directory)) {
-            mkdir($directory, 0777, true);
-        }
+        // 🔥 PART SIZE
+        $partSize = 15000;
 
-        // Headers
-        $headers = [
-            'ID','Name','Email','Phone','City','State','Country',
-            'Status','Experience','Salary','Joined At','Created At','Updated At'
-        ];
+        // Total parts
+        $totalParts = ceil($totalRecords / $partSize);
 
-        // 🔥 STEP 2: DECIDE FORMAT
-        if ($totalRecords < 30000) {
-
-            // =========================
-            // ✅ EXCEL EXPORT
-            // =========================
-
-            $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
-
-            $sheet->fromArray([$headers], null, 'A1');
-            $sheet->getStyle('A1:M1')->getFont()->setBold(true);
-
-            $row = 2;
-
-            $query->orderBy('id')->chunk(1000, function ($workers) use (&$sheet, &$row) {
-                foreach ($workers as $worker) {
-                    $sheet->fromArray([[
-                        $worker->id,
-                        $worker->name,
-                        $worker->email,
-                        $worker->phone,
-                        $worker->city,
-                        $worker->state,
-                        $worker->country,
-                        $worker->status,
-                        $worker->experience,
-                        $worker->salary,
-                        $worker->joined_at,
-                        $worker->created_at,
-                        $worker->updated_at
-                    ]], null, "A$row");
-
-                    $row++;
-                }
-            });
-
-            $fileName = 'workers_'.$export->id.'.xlsx';
-            $fullPath = $directory.'/'.$fileName;
-
-            $writer = new Xlsx($spreadsheet);
-            $writer->save($fullPath);
-
-        } else {
-
-            // =========================
-            // ✅ CSV EXPORT (STREAMING)
-            // =========================
-
-            $fileName = 'workers_'.$export->id.'.csv';
-            $fullPath = $directory.'/'.$fileName;
-
-            $file = fopen($fullPath, 'w');
-
-            // Header
-            fputcsv($file, $headers);
-
-            $query->orderBy('id')->chunk(1000, function ($workers) use ($file) {
-                foreach ($workers as $worker) {
-                    fputcsv($file, [
-                        $worker->id,
-                        $worker->name,
-                        $worker->email,
-                        $worker->phone,
-                        $worker->city,
-                        $worker->state,
-                        $worker->country,
-                        $worker->status,
-                        $worker->experience,
-                        $worker->salary,
-                        $worker->joined_at,
-                        $worker->created_at,
-                        $worker->updated_at
-                    ]);
-                }
-            });
-
-            fclose($file);
-        }
-
-        // 🔥 FINAL UPDATE
         $export->update([
-            'file_name' => 'exports/'.$fileName,
-            'status' => 'completed'
+            'status' => 'processing',
+            'total_records' => $totalRecords,
+            'processed_records' => 0,
+            'total_parts' => $totalParts,
+            'completed_parts' => 0
         ]);
+
+        // Dispatch child jobs
+        for ($part = 1; $part <= $totalParts; $part++) {
+
+            $offset = ($part - 1) * $partSize;
+
+            GenerateWorkerExportPart::dispatch(
+                $export->id,
+                $offset,
+                $partSize,
+                $part
+            )->onQueue('exports');
+        }
     }
     
 }

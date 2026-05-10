@@ -304,30 +304,62 @@ class WorkerController extends Controller
     public function startExport(Request $request)
     {
         $export = Export::create([
-            'filters' => json_encode($request->all()),
-            'status' => 'pending'
+            'filters' => $request->all(),
+            'status' => 'pending',
+            'export_name' => 'Workers Export'
         ]);
 
-        GenerateWorkerExport::dispatch($export->id)->onQueue('exports');
+        GenerateWorkerExport::dispatch($export->id)
+            ->onQueue('exports');
 
         return response()->json([
-            'export_id' => $export->id
+            'redirect_url' => route('exports.index')
         ]);
     }
 
-    public function checkExport($id)
+    // public function checkExport($id)
+    // {
+    //     return Export::find($id);
+    // }
+
+    // public function downloadExport($id)
+    // {
+    //     $export = Export::findOrFail($id);
+
+    //     if ($export->status !== 'completed') {
+    //         abort(404);
+    //     }
+
+    //     return response()->download(storage_path('app/public/'.$export->file_name));
+    // }
+
+    public function exports()
     {
-        return Export::find($id);
+        $exports = Export::with('files')
+            ->latest()
+            ->paginate(10);
+
+        return view('workers.exports', compact('exports'));
     }
 
-    public function downloadExport($id)
+    public function deleteExport($id)
     {
-        $export = Export::findOrFail($id);
+        $export = Export::with('files')->findOrFail($id);
 
-        if ($export->status !== 'completed') {
-            abort(404);
+        foreach ($export->files as $file) {
+
+            $path = storage_path('app/public/' . $file->file_name);
+
+            if (file_exists($path)) {
+                unlink($path);
+            }
         }
 
-        return response()->download(storage_path('app/public/'.$export->file_name));
+        // delete export_files records automatically
+        // because cascadeOnDelete exists
+
+        $export->delete();
+
+        return back()->with('success', 'Export deleted successfully');
     }
 }

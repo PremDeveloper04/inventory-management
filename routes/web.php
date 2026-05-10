@@ -30,8 +30,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/workers/export', [\App\Http\Controllers\WorkerController::class, 'export'])->name('workers.export');
 
     Route::get('/start-export', [\App\Http\Controllers\WorkerController::class, 'startExport']);
-    Route::get('/check-export/{id}', [\App\Http\Controllers\WorkerController::class, 'checkExport']);
+    // Route::get('/check-export/{id}', [\App\Http\Controllers\WorkerController::class, 'checkExport']);
     Route::get('/download-export/{id}', [\App\Http\Controllers\WorkerController::class, 'downloadExport']);
+
+    Route::get('/exports', [\App\Http\Controllers\WorkerController::class, 'exports'])
+    ->name('exports.index');
+
+    Route::delete('/exports/{id}', [\App\Http\Controllers\WorkerController::class, 'deleteExport'])
+        ->name('exports.delete');
 
     Route::resource('workers', \App\Http\Controllers\WorkerController::class);
 

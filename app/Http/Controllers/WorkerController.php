@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Mail;
 use App\Http\Requests\WorkerRequest;
 use App\Models\Worker;
 use Illuminate\Http\RedirectResponse;
@@ -13,6 +14,9 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use App\Models\Export;
 use App\Jobs\GenerateWorkerExport;
+use App\Mail\WorkerExportStartedMail;
+use App\Events\WorkerExportStarted;
+use Carbon\Carbon;
 
 class WorkerController extends Controller
 {
@@ -109,11 +113,6 @@ class WorkerController extends Controller
 
         return view('workers.index', compact('workers'));
     }
-
-    // understand query
-    // cache
-    // more about indexing and query optimization
-    // import and export
 
     public function create(): Response
     {
@@ -308,6 +307,47 @@ class WorkerController extends Controller
             'status' => 'pending',
             'export_name' => 'Workers Export'
         ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Prepare Email Data
+        |--------------------------------------------------------------------------
+        */
+
+        $exportData = [
+            'export_name' => $export->export_name,
+            'export_status' => $export->status,
+            'started_at' => Carbon::now(),
+        ];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Send Export Started Email
+        |--------------------------------------------------------------------------
+        */
+
+        // Mail::to('admin@test.com')
+        // ->queue(
+        //     (new WorkerExportStartedMail($exportData))
+        //         ->onQueue('email')
+        // );
+
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Fire Export Started Event
+        |--------------------------------------------------------------------------
+        */
+
+        event(new WorkerExportStarted($exportData));
+
+        /*
+        |--------------------------------------------------------------------------
+        | Dispatch Export Job
+        |--------------------------------------------------------------------------
+        */
 
         GenerateWorkerExport::dispatch($export->id)
             ->onQueue('exports');

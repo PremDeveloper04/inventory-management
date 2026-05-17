@@ -44,6 +44,9 @@ jobs:
             echo "⚡ Clear old cache"
             php artisan optimize:clear
 
+            echo "🔗 Create storage symlink"
+            php artisan storage:link || true
+
             echo "⚡ Cache config"
             php artisan config:cache
 

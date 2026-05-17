@@ -5,7 +5,7 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "dev:full": "concurrently \"php artisan serve\" \"npm run dev\" \"php artisan queue:work --queue=exports\""
+        "dev:full": "concurrently \"php artisan serve\" \"npm run dev\" \"php artisan queue:work --queue=exports\" \"php artisan queue:work --queue=email\""
     },
     "devDependencies": {
         "@headlessui/react": "^2.0.0",
